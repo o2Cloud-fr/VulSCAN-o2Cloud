@@ -11,6 +11,8 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 700,
         height: 800,
+        frame: false, // <--- Supprime la barre de titre
+        titleBarStyle: 'hidden', // optionnel : style macOS
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
