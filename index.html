@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VulSCAN - Scanner de Vulnérabilités</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 120px;
+            min-width: 120px;
+            background: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 10px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: #3498db;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .scan-icon {
+            width: 60px;
+            height: 60px;
+            background: #27ae60;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            border: none;
+            outline: none;
+        }
+
+        .scan-icon:hover {
+            transform: scale(1.1);
+            background: #2ecc71;
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        .scan-icon:active {
+            transform: scale(0.95);
+        }
+
+        .scan-icon:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .main-content {
+            flex: 1;
+            background: white;
+            margin: 10px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .status-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .action-list {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .action-item {
+            padding: 8px 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            word-wrap: break-word;
+        }
+
+        .action-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-item span:first-child {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .action-item span:last-child {
+            flex-shrink: 0;
+        }
+
+        .status-done {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-progress {
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .status-failed {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0 0 10px 10px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .btn:focus {
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #1e7e34;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .results-summary {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+        }
+
+        .results-summary h4 {
+            margin: 0 0 10px 0;
+            color: #0056b3;
+        }
+
+        .results-summary p {
+            margin: 5px 0;
+        }
+
+        .severity-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .severity-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .critical { 
+            background: #dc3545; 
+            color: white; 
+        }
+        
+        .high { 
+            background: #fd7e14; 
+            color: white; 
+        }
+        
+        .medium { 
+            background: #ffc107; 
+            color: black; 
+        }
+        
+        .low { 
+            background: #fff3cd; 
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .safe { 
+            background: #d4edda; 
+            color: #155724; 
+        }
+
+        .countdown {
+            font-weight: bold;
+            color: #ffc107;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Animation de chargement */
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                min-height: 100vh;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                justify-content: center;
+                padding: 10px;
+            }
+
+            .logo {
+                margin-bottom: 0;
+                margin-right: 15px;
+            }
+
+            .scan-icon {
+                margin-bottom: 0;
+            }
+
+            .main-content {
+                margin: 5px;
+                flex: 1;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .button-group {
+                justify-content: center;
+            }
+        }
+
+        /* États d'erreur */
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #f5c6cb;
+            margin: 10px 0;
+        }
+
+        /* Animation d'apparition */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                VulSCAN<br>v1.0
+            </div>
+            <button class="scan-icon" id="startScan" title="Démarrer le scan" type="button" aria-label="Démarrer le scan de vulnérabilités">
+                🔍
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h3>VulSCAN - Scanner de Vulnérabilités</h3>
+                <div class="countdown" id="countdown" aria-live="polite"></div>
+            </div>
+
+            <div class="status-area">
+                <div class="action-list" id="actionList" role="log" aria-live="polite" aria-label="Journal des actions du scan">
+                    <div class="action-item">
+                        <span>Préparation du scanner</span>
+                        <span class="status-done">Prêt</span>
+                    </div>
+                    <div class="action-item">
+                        <span>Connexion à la base de données CVE</span>
+                        <span class="status-done">Connecté</span>
+                    </div>
+                    <div class="action-item">
+                        <span>Initialisation des modules de scan</span>
+                        <span class="status-done">Initialisé</span>
+                    </div>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Scan en cours...</div>
+                </div>
+
+                <div class="results-section" id="resultsSection">
+                    <div class="results-summary" id="resultsSummary"></div>
+                    <div class="button-group">
+                        <button class="btn btn-success" id="openExcel" disabled>
+                            📊 Ouvrir Excel
+                        </button>
+                        <button class="btn btn-primary" id="openHTML" disabled>
+                            🌐 Ouvrir HTML
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <span id="statusText">Prêt à scanner</span>
+                <button class="btn btn-primary" id="closeBtn" type="button">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Vérification de la disponibilité des modules Electron
+        let ipcRenderer = null;
+        let isElectron = false;
+
+        try {
+            if (typeof require !== 'undefined') {
+                ipcRenderer = require('electron').ipcRenderer;
+                isElectron = true;
+            }
+        } catch (error) {
+            console.log('Mode démo - pas dans Electron');
+        }
+        
+        let scanResults = null;
+        let excelFile = null;
+        let htmlFile = null;
+        let scanInProgress = false;
+        let countdownInterval = null;
+
+        // Elements DOM
+        const elements = {
+            startScan: document.getElementById('startScan'),
+            closeBtn: document.getElementById('closeBtn'),
+            openExcel: document.getElementById('openExcel'),
+            openHTML: document.getElementById('openHTML'),
+            actionList: document.getElementById('actionList'),
+            progressContainer: document.getElementById('progressContainer'),
+            progressFill: document.getElementById('progressFill'),
+            progressText: document.getElementById('progressText'),
+            resultsSection: document.getElementById('resultsSection'),
+            resultsSummary: document.getElementById('resultsSummary'),
+            statusText: document.getElementById('statusText'),
+            countdown: document.getElementById('countdown')
+        };
+
+        // Event Listeners
+        elements.startScan.addEventListener('click', handleStartScan);
+        elements.closeBtn.addEventListener('click', handleClose);
+        elements.openExcel.addEventListener('click', () => handleOpenFile(excelFile));
+        elements.openHTML.addEventListener('click', () => handleOpenFile(htmlFile));
+
+        // Gestion du clavier
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                handleClose();
+            } else if (e.key === 'Enter' && !scanInProgress) {
+                handleStartScan();
+            }
+        });
+
+        // Auto-démarrage du scan au chargement de la page (uniquement en mode Electron)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isElectron) {
+                setTimeout(handleStartScan, 1000);
+            } else {
+                showDemoMode();
+            }
+        });
+
+        function showDemoMode() {
+            addActionItem('Mode démo activé - Interface seulement', 'DÉMO', 'status-progress');
+            updateStatus('Mode démo - Cliquez sur le bouton pour simuler un scan');
+        }
+
+        async function handleStartScan() {
+            if (scanInProgress) return;
+            
+            scanInProgress = true;
+            elements.startScan.disabled = true;
+            elements.startScan.innerHTML = '<div class="loading-spinner"></div>';
+            
+            // Reset UI
+            elements.progressContainer.style.display = 'block';
+            elements.resultsSection.style.display = 'none';
+            clearCountdown();
+            
+            // Clear action list
+            elements.actionList.innerHTML = '';
+            
+            try {
+                if (isElectron && ipcRenderer) {
+                    await ipcRenderer.invoke('start-scan');
+                } else {
+                    // Mode démo
+                    await simulateScan();
+                }
+            } catch (error) {
+                handleError('Erreur lors du scan: ' + error.message);
+            } finally {
+                scanInProgress = false;
+                elements.startScan.disabled = false;
+                elements.startScan.innerHTML = '🔍';
+            }
+        }
+
+        async function simulateScan() {
+            const steps = [
+                'Connexion à l\'API CIRCL',
+                'Récupération des logiciels installés',
+                'Analyse des vulnérabilités',
+                'Génération des rapports'
+            ];
+
+            for (let i = 0; i < steps.length; i++) {
+                addActionItem(steps[i], 'En cours', 'status-progress');
+                updateStatus(steps[i] + '...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Mise à jour du dernier élément
+                const items = elements.actionList.querySelectorAll('.action-item');
+                const lastItem = items[items.length - 1];
+                if (lastItem) {
+                    lastItem.querySelector('.status-progress').textContent = 'Terminé';
+                    lastItem.querySelector('.status-progress').className = 'status-done';
+                }
+            }
+
+            // Simulation des résultats
+            const mockResults = {
+                results: [
+                    { severity: 'critical', name: 'Adobe Reader' },
+                    { severity: 'high', name: 'Java Runtime' },
+                    { severity: 'medium', name: 'Chrome Browser' },
+                    { severity: 'safe', name: 'Windows Defender' }
+                ],
+                excelFile: 'demo_report.xlsx',
+                htmlFile: 'demo_report.html'
+            };
+
+            handleScanComplete(null, mockResults);
+        }
+
+        function handleClose() {
+            clearCountdown();
+            if (isElectron) {
+                window.close();
+            } else {
+                alert('En mode démo - La fenêtre ne peut pas être fermée');
+            }
+        }
+
+        function handleOpenFile(filePath) {
+            if (!filePath) return;
+            
+            if (isElectron && ipcRenderer) {
+                ipcRenderer.invoke('open-file', filePath);
+            } else {
+                alert(`Mode démo - Ouverture simulée de: ${filePath}`);
+            }
+        }
+
+        function handleError(message) {
+            addActionItem('Erreur détectée', 'ÉCHEC', 'status-failed');
+            updateStatus(message);
+            
+            // Afficher le message d'erreur
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message fade-in';
+            errorDiv.textContent = message;
+            elements.statusArea.insertBefore(errorDiv, elements.progressContainer);
+            
+            elements.progressContainer.style.display = 'none';
+        }
+
+        function addActionItem(action, status, statusClass = 'status-done') {
+            const item = document.createElement('div');
+            item.className = 'action-item fade-in';
+            item.innerHTML = `
+                <span>${escapeHtml(action)}</span>
+                <span class="${statusClass}">${escapeHtml(status)}</span>
+            `;
+            elements.actionList.appendChild(item);
+            elements.actionList.scrollTop = elements.actionList.scrollHeight;
+        }
+
+        function updateProgress(current, total) {
+            if (!current || !total) return;
+            
+            const percentage = Math.min((current / total) * 100, 100);
+            elements.progressFill.style.width = percentage + '%';
+            elements.progressText.textContent = `${current}/${total} logiciels analysés (${Math.round(percentage)}%)`;
+            
+            // Mise à jour de l'attribut aria pour l'accessibilité
+            const progressBar = elements.progressContainer.querySelector('.progress-bar');
+            progressBar.setAttribute('aria-valuenow', Math.round(percentage));
+        }
+
+        function updateStatus(text) {
+            elements.statusText.textContent = text;
+        }
+
+        function startCountdown() {
+            clearCountdown();
+            let seconds = 60;
+            
+            countdownInterval = setInterval(() => {
+                elements.countdown.textContent = `Auto-fermeture dans ${seconds}s`;
+                seconds--;
+                
+                if (seconds < 0) {
+                    clearCountdown();
+                    if (isElectron) {
+                        window.close();
+                    }
+                }
+            }, 1000);
+        }
+
+        function clearCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            elements.countdown.textContent = '';
+        }
+
+        function handleScanComplete(event, data) {
+            scanResults = data.results;
+            excelFile = data.excelFile;
+            htmlFile = data.htmlFile;
+            
+            elements.progressContainer.style.display = 'none';
+            elements.resultsSection.style.display = 'block';
+            elements.resultsSection.classList.add('fade-in');
+            
+            // Calculer les statistiques
+            const stats = calculateStats(scanResults);
+            
+            elements.resultsSummary.innerHTML = `
+                <h4>Résultats du scan</h4>
+                <p><strong>Total des logiciels analysés:</strong> ${stats.total}</p>
+                <div class="severity-badges">
+                    ${stats.critical > 0 ? `<span class="severity-badge critical">${stats.critical} Critique${stats.critical > 1 ? 's' : ''}</span>` : ''}
+                    ${stats.high > 0 ? `<span class="severity-badge high">${stats.high} Élevée${stats.high > 1 ? 's' : ''}</span>` : ''}
+                    ${stats.medium > 0 ? `<span class="severity-badge medium">${stats.medium} Moyenne${stats.medium > 1 ? 's' : ''}</span>` : ''}
+                    ${stats.low > 0 ? `<span class="severity-badge low">${stats.low} Faible${stats.low > 1 ? 's' : ''}</span>` : ''}
+                    ${stats.safe > 0 ? `<span class="severity-badge safe">${stats.safe} Sûr${stats.safe > 1 ? 's' : ''}</span>` : ''}
+                </div>
+            `;
+            
+            // Activer les boutons
+            elements.openExcel.disabled = false;
+            elements.openHTML.disabled = false;
+            
+            addActionItem('Scan terminé avec succès', 'TERMINÉ', 'status-done');
+            if (excelFile) addActionItem(`Rapport Excel généré: ${excelFile}`, 'CRÉÉ', 'status-done');
+            if (htmlFile) addActionItem(`Rapport HTML généré: ${htmlFile}`, 'CRÉÉ', 'status-done');
+            
+            updateStatus('Scan terminé - Rapports générés');
+            
+            if (isElectron) {
+                startCountdown();
+            }
+        }
+
+        function calculateStats(results) {
+            return {
+                total: results.length,
+                critical: results.filter(r => r.severity === 'critical').length,
+                high: results.filter(r => r.severity === 'high').length,
+                medium: results.filter(r => r.severity === 'medium').length,
+                low: results.filter(r => r.severity === 'low').length,
+                safe: results.filter(r => r.severity === 'safe').length
+            };
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // IPC Event Listeners (uniquement en mode Electron)
+        if (isElectron && ipcRenderer) {
+            ipcRenderer.on('scan-status', (event, status) => {
+                addActionItem(status, 'En cours', 'status-progress');
+                updateStatus(status);
+            });
+
+            ipcRenderer.on('scan-progress', (event, data) => {
+                updateProgress(data.current, data.total);
+                if (data.currentSoftware) {
+                    addActionItem(`Analyse de ${data.currentSoftware}`, 'En cours', 'status-progress');
+                }
+            });
+
+            ipcRenderer.on('scan-complete', handleScanComplete);
+
+            ipcRenderer.on('scan-error', (event, error) => {
+                handleError('Erreur: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

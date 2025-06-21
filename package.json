@@ -1,0 +1,49 @@
+{
+  "name": "vulscan",
+  "version": "1.0.0",
+  "description": "Scanner de vulnérabilités pour Windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "keywords": [
+    "vulnerability",
+    "scanner",
+    "security",
+    "cve",
+    "windows"
+  ],
+  "author": "VulSCAN Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "exceljs": "^4.4.0"
+  },
+  "build": {
+    "appId": "com.vulscan.o2cloud.fr",
+    "productName": "VulSCAN",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "package.json",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
